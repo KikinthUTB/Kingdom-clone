@@ -17,6 +17,8 @@ BROWN = (139, 69, 19)
 SKY_BLUE = (135, 206, 235)
 GRAY = (128, 128, 128)
 YELLOW = (255, 255, 0)
+ORANGE = (255, 165, 0) # Stavař
+LIGHT_GREEN = (144, 238, 144) # Lučištník
 
 # Hráč
 class Player(pygame.sprite.Sprite):
@@ -58,13 +60,16 @@ class Coin(pygame.sprite.Sprite):
 class NPC(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.state = 'BEGGAR' # Stavy: BEGGAR, VILLAGER_FOLLOWING, VILLAGER_IDLE
+        self.state = 'BEGGAR' # Stavy: BEGGAR, VILLAGER_FOLLOWING, VILLAGER_IDLE, BUILDER, ARCHER
         self.image = pygame.Surface((30, 50))
         self.image.fill(GRAY) # Žebrák je šedý
         self.rect = self.image.get_rect(midbottom=(x, y))
         self.speed = 2
+        self.target_station = None
+        self.profession = None
+        self.target_position = None
 
-    def update(self, player, town_center):
+    def update(self, player, town_center, tool_stations):
         if self.state == 'VILLAGER_FOLLOWING':
             # Následuje hráče
             if abs(self.rect.centerx - player.rect.centerx) > 50: # Udržuje si odstup
@@ -76,19 +81,106 @@ class NPC(pygame.sprite.Sprite):
             # Zkontroluje, zda dorazil do centra
             if self.rect.colliderect(town_center):
                 self.state = 'VILLAGER_IDLE'
-                self.image.fill(WHITE) # Zůstává bílý
-
-        elif self.state == 'BEGGAR':
-            # Žebrák nic nedělá, jen sedí
-            pass
+                self.image.fill(WHITE)
 
         elif self.state == 'VILLAGER_IDLE':
-            # Nečinný vesničan nic nedělá
-            pass
+            # Nečinný vesničan si hledá práci
+            if not self.target_station:
+                # Najde nejbližší stanici s nástroji
+                closest_station = None
+                min_dist = float('inf')
+                for station in tool_stations:
+                    if station.tools:
+                        dist = abs(self.rect.centerx - station.rect.centerx)
+                        if dist < min_dist:
+                            min_dist = dist
+                            closest_station = station
+                self.target_station = closest_station
+
+            if self.target_station:
+                # Pohyb ke stanici
+                if abs(self.rect.centerx - self.target_station.rect.centerx) > self.speed:
+                    if self.rect.centerx < self.target_station.rect.centerx:
+                        self.rect.x += self.speed
+                    else:
+                        self.rect.x -= self.speed
+                else: # Dorazil
+                    if self.target_station.take_tool():
+                        self.profession = self.target_station.tool_type
+                        if self.profession == 'hammer':
+                            self.state = 'BUILDER'
+                            self.image.fill(ORANGE)
+                        elif self.profession == 'bow':
+                            self.state = 'ARCHER'
+                            self.image.fill(LIGHT_GREEN)
+                        self.target_station = None
+                        self.target_position = town_center.centerx
+
+        elif self.state == 'BUILDER' or self.state == 'ARCHER':
+            # Vrací se do centra města
+            if self.target_position:
+                if abs(self.rect.centerx - self.target_position) > self.speed:
+                    if self.rect.centerx < self.target_position:
+                        self.rect.x += self.speed
+                    else:
+                        self.rect.x -= self.speed
+                else:
+                    self.target_position = None
 
     def recruit(self):
         self.state = 'VILLAGER_FOLLOWING'
-        self.image.fill(WHITE) # Vesničan je bílý
+        self.image.fill(WHITE)
+
+# Třída pro nástroje (vizuální reprezentace)
+class Tool(pygame.sprite.Sprite):
+    def __init__(self, x, y, color):
+        super().__init__()
+        self.image = pygame.Surface((10, 20))
+        self.image.fill(color)
+        self.rect = self.image.get_rect(center=(x, y))
+
+# Třída pro stanice s nástroji
+class ToolStation:
+    def __init__(self, x, y, tool_type, tool_cost, tool_color):
+        self.rect = pygame.Rect(x, y, 60, 60)
+        self.tool_type = tool_type
+        self.tool_cost = tool_cost
+        self.tool_color = tool_color
+        self.money_paid = 0
+        self.tools = pygame.sprite.Group()
+        self.max_tools = 4
+
+    def add_coin(self):
+        self.money_paid += 1
+        if self.money_paid >= self.tool_cost and len(self.tools) < self.max_tools:
+            self.money_paid -= self.tool_cost
+            self.create_tool()
+
+    def create_tool(self):
+        # Nástroje se objevují na stojanu vedle stanice
+        tool_x = self.rect.centerx
+        tool_y = self.rect.top - (len(self.tools) * 25) - 15
+        new_tool = Tool(tool_x, tool_y, self.tool_color)
+        self.tools.add(new_tool)
+
+    def take_tool(self):
+        if self.tools:
+            tool = self.tools.sprites()[-1] # Vezme poslední přidaný nástroj
+            tool.kill()
+            return True
+        return False
+
+    def draw(self, screen, camera_offset_x):
+        # Vykreslení stanice
+        station_screen_rect = self.rect.copy()
+        station_screen_rect.x -= camera_offset_x
+        pygame.draw.rect(screen, BROWN, station_screen_rect)
+
+        # Vykreslení nástrojů
+        for tool in self.tools:
+            tool_screen_rect = tool.rect.copy()
+            tool_screen_rect.x -= camera_offset_x
+            screen.blit(tool.image, tool_screen_rect)
 
 # Funkce pro vykreslení UI
 def draw_ui(screen, player, font):
@@ -114,6 +206,11 @@ def main():
     # Klíčové lokace
     town_center = pygame.Rect(WIDTH * 1.5 - 50, HEIGHT - 50, 100, 10) # Uprostřed světa
     beggar_camp = pygame.Rect(300, HEIGHT - 100, 80, 50) # Vlevo od startu
+
+    # Stanice s nástroji
+    hammer_station = ToolStation(town_center.left - 80, HEIGHT - 110, 'hammer', 3, ORANGE)
+    bow_station = ToolStation(town_center.right + 20, HEIGHT - 110, 'bow', 2, LIGHT_GREEN)
+    tool_stations = [hammer_station, bow_station]
 
     # Vytvoření NPC
     beggar = NPC(beggar_camp.centerx, beggar_camp.bottom)
@@ -157,7 +254,7 @@ def main():
 
         keys = pygame.key.get_pressed()
         player.update(keys)
-        npcs.update(player, town_center)
+        npcs.update(player, town_center, tool_stations)
 
         # Sebrání mincí
         collected_coins = pygame.sprite.spritecollide(player, coins_on_ground, True)
@@ -169,6 +266,13 @@ def main():
             if npc.state == 'BEGGAR':
                 if coin_list: # Pokud došlo ke kolizi
                     npc.recruit()
+
+        # Nákup nástrojů u stanic
+        for station in tool_stations:
+            collided_coins = [coin for coin in coins_on_ground if station.rect.colliderect(coin.rect)]
+            for coin in collided_coins:
+                station.add_coin()
+                coin.kill()
 
         # Omezení pohybu hráče ve světě
         if player.rect.left < 0:
@@ -204,6 +308,10 @@ def main():
         town_center_screen_rect = town_center.copy()
         town_center_screen_rect.x -= camera_offset_x
         pygame.draw.rect(screen, GRAY, town_center_screen_rect)
+
+        # Vykreslení stanic s nástroji
+        for station in tool_stations:
+            station.draw(screen, camera_offset_x)
 
 
         # Vykreslení všech spritů s ohledem na kameru
