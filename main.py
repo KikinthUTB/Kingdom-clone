@@ -20,28 +20,44 @@ YELLOW = (255, 255, 0)
 ORANGE = (255, 165, 0) # Stavař
 LIGHT_GREEN = (144, 238, 144) # Lučištník
 
-# Hráč
-class Player(pygame.sprite.Sprite):
+# Jezdecké zvíře
+class Mount:
+    def __init__(self):
+        self.normal_speed = 5
+        self.sprint_speed = 8
+
+# Monarcha (hráč)
+class Monarch(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((40, 60))
         self.image.fill(WHITE)
         self.rect = self.image.get_rect(midbottom=(WIDTH / 2, HEIGHT - 50))
-        self.speed = 5
-        self.coins = 10
+
+        self.health = 10  # Počet mincí
+        self.mount = Mount()
+        self.movementSpeed = self.mount.normal_speed
+        self.can_drop_coins = True
+        self.crown = True
         self.direction = 1 # 1 = doprava, -1 = doleva
 
     def update(self, keys):
+        # Sprint
+        if keys[pygame.K_LSHIFT]:
+            self.movementSpeed = self.mount.sprint_speed
+        else:
+            self.movementSpeed = self.mount.normal_speed
+
         if keys[pygame.K_LEFT]:
-            self.rect.x -= self.speed
+            self.rect.x -= self.movementSpeed
             self.direction = -1
         if keys[pygame.K_RIGHT]:
-            self.rect.x += self.speed
+            self.rect.x += self.movementSpeed
             self.direction = 1
 
     def drop_coin(self):
-        if self.coins > 0:
-            self.coins -= 1
+        if self.health > 0 and self.can_drop_coins:
+            self.health -= 1
             # Upustí minci před hráčem
             coin_x = self.rect.centerx + (self.direction * 30)
             coin_y = self.rect.bottom - 10 # Mírně nad zemí
@@ -69,11 +85,11 @@ class NPC(pygame.sprite.Sprite):
         self.profession = None
         self.target_position = None
 
-    def update(self, player, town_center, tool_stations):
+    def update(self, monarch, town_center, tool_stations):
         if self.state == 'VILLAGER_FOLLOWING':
             # Následuje hráče
-            if abs(self.rect.centerx - player.rect.centerx) > 50: # Udržuje si odstup
-                if self.rect.centerx < player.rect.centerx:
+            if abs(self.rect.centerx - monarch.rect.centerx) > 50: # Udržuje si odstup
+                if self.rect.centerx < monarch.rect.centerx:
                     self.rect.x += self.speed
                 else:
                     self.rect.x -= self.speed
@@ -183,17 +199,17 @@ class ToolStation:
             screen.blit(tool.image, tool_screen_rect)
 
 # Funkce pro vykreslení UI
-def draw_ui(screen, player, font):
-    coin_text = font.render(f"Mince: {player.coins}", True, WHITE)
-    screen.blit(coin_text, (10, 10))
+def draw_ui(screen, monarch, font):
+    health_text = font.render(f"Health: {monarch.health}", True, WHITE)
+    screen.blit(health_text, (10, 10))
 
 # Hlavní smyčka hry
 def main():
     clock = pygame.time.Clock()
     font = pygame.font.Font(None, 36) # Defaultní písmo, velikost 36
-    player = Player()
+    monarch = Monarch()
     all_sprites = pygame.sprite.Group()
-    all_sprites.add(player)
+    all_sprites.add(monarch)
     coins_on_ground = pygame.sprite.Group()
     npcs = pygame.sprite.Group()
 
@@ -240,7 +256,7 @@ def main():
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
-                    new_coin = player.drop_coin()
+                    new_coin = monarch.drop_coin()
                     if new_coin:
                         all_sprites.add(new_coin)
                         coins_on_ground.add(new_coin)
@@ -253,12 +269,12 @@ def main():
                     npcs.add(new_beggar)
 
         keys = pygame.key.get_pressed()
-        player.update(keys)
-        npcs.update(player, town_center, tool_stations)
+        monarch.update(keys)
+        npcs.update(monarch, town_center, tool_stations)
 
         # Sebrání mincí
-        collected_coins = pygame.sprite.spritecollide(player, coins_on_ground, True)
-        player.coins += len(collected_coins)
+        collected_coins = pygame.sprite.spritecollide(monarch, coins_on_ground, True)
+        monarch.health += len(collected_coins)
 
         # Rekrutování žebráků
         recruited_npcs = pygame.sprite.groupcollide(npcs, coins_on_ground, False, True)
@@ -275,13 +291,17 @@ def main():
                 coin.kill()
 
         # Omezení pohybu hráče ve světě
-        if player.rect.left < 0:
-            player.rect.left = 0
-        if player.rect.right > WORLD_WIDTH:
-            player.rect.right = WORLD_WIDTH
+        if monarch.rect.left < 0:
+            monarch.rect.left = 0
+        if monarch.rect.right > WORLD_WIDTH:
+            monarch.rect.right = WORLD_WIDTH
+
+        # Kontrola konce hry
+        if monarch.health <= 0 or not monarch.crown:
+            running = False
 
         # Aktualizace kamery, aby sledovala hráče
-        camera_offset_x = player.rect.centerx - WIDTH / 2
+        camera_offset_x = monarch.rect.centerx - WIDTH / 2
 
         # Vykreslení
         # Pozadí
@@ -321,7 +341,7 @@ def main():
             screen.blit(sprite.image, sprite_screen_rect)
 
         # Vykreslení UI
-        draw_ui(screen, player, font)
+        draw_ui(screen, monarch, font)
 
         pygame.display.flip()
         clock.tick(60)
