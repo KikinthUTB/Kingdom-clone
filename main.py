@@ -16,6 +16,7 @@ GREEN = (0, 128, 0)
 BROWN = (139, 69, 19)
 SKY_BLUE = (135, 206, 235)
 GRAY = (128, 128, 128)
+YELLOW = (255, 255, 0)
 
 # Hráč
 class Player(pygame.sprite.Sprite):
@@ -25,19 +26,47 @@ class Player(pygame.sprite.Sprite):
         self.image.fill(WHITE)
         self.rect = self.image.get_rect(midbottom=(WIDTH / 2, HEIGHT - 50))
         self.speed = 5
+        self.coins = 10
+        self.direction = 1 # 1 = doprava, -1 = doleva
 
     def update(self, keys):
         if keys[pygame.K_LEFT]:
             self.rect.x -= self.speed
+            self.direction = -1
         if keys[pygame.K_RIGHT]:
             self.rect.x += self.speed
+            self.direction = 1
+
+    def drop_coin(self):
+        if self.coins > 0:
+            self.coins -= 1
+            # Upustí minci před hráčem
+            coin_x = self.rect.centerx + (self.direction * 30)
+            coin_y = self.rect.bottom - 10 # Mírně nad zemí
+            return Coin(coin_x, coin_y)
+        return None
+
+# Mince
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((15, 15), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, YELLOW, (7, 7), 7)
+        self.rect = self.image.get_rect(center=(x, y))
+
+# Funkce pro vykreslení UI
+def draw_ui(screen, player, font):
+    coin_text = font.render(f"Mince: {player.coins}", True, WHITE)
+    screen.blit(coin_text, (10, 10))
 
 # Hlavní smyčka hry
 def main():
     clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 36) # Defaultní písmo, velikost 36
     player = Player()
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
+    coins_on_ground = pygame.sprite.Group()
 
     # Země
     ground_rect = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)
@@ -59,9 +88,19 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_s:
+                    new_coin = player.drop_coin()
+                    if new_coin:
+                        all_sprites.add(new_coin)
+                        coins_on_ground.add(new_coin)
 
         keys = pygame.key.get_pressed()
         player.update(keys)
+
+        # Sebrání mincí
+        collected_coins = pygame.sprite.spritecollide(player, coins_on_ground, True)
+        player.coins += len(collected_coins)
 
         # Omezení pohybu hráče na obrazovce (dočasně, než bude svět větší)
         if player.rect.left < 0:
@@ -88,11 +127,14 @@ def main():
         screen.fill(GREEN, pygame.Rect(ground_x, ground_rect.y, ground_rect.width*2, ground_rect.height))
 
 
-        # Vykreslení hráče s ohledem na kameru
-        player_screen_rect = player.rect.copy()
-        player_screen_rect.x -= camera_offset_x
-        screen.blit(player.image, player_screen_rect)
+        # Vykreslení všech spritů s ohledem na kameru
+        for sprite in all_sprites:
+            sprite_screen_rect = sprite.rect.copy()
+            sprite_screen_rect.x -= camera_offset_x
+            screen.blit(sprite.image, sprite_screen_rect)
 
+        # Vykreslení UI
+        draw_ui(screen, player, font)
 
         pygame.display.flip()
         clock.tick(60)
