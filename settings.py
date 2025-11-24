@@ -1,31 +1,26 @@
 import pygame
 
-# --- Nastavení a Konstanty ---
-WIDTH, HEIGHT = 1280, 720
-WORLD_WIDTH = WIDTH * 3
+# Screen
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+TILE_SIZE = 64
+FPS = 60
 
-# Barvy
+# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GREEN = (0, 128, 0)
-BROWN = (139, 69, 19)
-SKY_BLUE = (135, 206, 235)
-GRAY = (128, 128, 128)
-YELLOW = (255, 255, 0)
-ORANGE = (255, 165, 0)  # Stavař
-LIGHT_GREEN = (144, 238, 144)  # Lučištník
-LIGHT_BROWN = (210, 180, 140) # Farmář
-PURPLE = (128, 0, 128) # Portál
-DARK_BLUE = (0, 0, 50) # Noc
-GREED_COLOR = (220, 20, 60) # Greed
-CROWN_GOLD = (255, 215, 0) # Koruna
+BG_DAY_SKY = (100, 200, 255)
+BG_NIGHT_SKY = (20, 20, 50)
+GROUND_COLOR = (50, 150, 50)
+WATER_COLOR = (40, 100, 150)
+GOLD_COLOR = (255, 215, 0)
 
-# Herní čas
-DAY_LENGTH = 60000  # 60 sekund
-NIGHT_LENGTH = 30000 # 30 sekund
-# Kratší pro testování
-# DAY_LENGTH = 20000
-# NIGHT_LENGTH = 15000
+# Layers
+LAYER_BG = 0
+LAYER_GROUND = 1
+LAYER_MAIN = 2
+LAYER_UI = 3
 
-# Eventy
-SPAWN_BEGGAR_EVENT = pygame.USEREVENT + 1
+# Physics
+GRAVITY = 0.8
+TERMINAL_VELOCITY = 15
