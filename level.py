@@ -7,6 +7,7 @@ from buildings import Building, Shop
 from jobs import Tool, Unit
 from enemies import Greed, Portal, DayNightCycle
 from logic import check_win_condition
+from combat import Projectile
 
 class Camera:
     def __init__(self, width, height):
@@ -52,6 +53,7 @@ class Level:
         self.units = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
         self.portals = pygame.sprite.Group()
+        self.projectiles = pygame.sprite.Group()
 
         self.day_night = DayNightCycle()
 
@@ -143,6 +145,12 @@ class Level:
         # Check enemy collisions
         self.check_enemy_interactions()
 
+        # Check projectile collisions
+        self.check_projectile_collisions()
+
+        # Update archers
+        self.update_archers()
+
         # Update camera
         self.camera.update(self.player)
 
@@ -226,6 +234,50 @@ class Level:
             if hit_tools:
                 enemy.item_stolen = "tool"
                 enemy.state = "retreat"
+
+    def update_archers(self):
+        # Find archers
+        archers = [u for u in self.units if u.job == "archer"]
+        for archer in archers:
+             # Find targets (Greed or Portals)
+             # Priority: Greed
+             target = None
+
+             # Search for nearby enemies
+             # Optimization: Check distance
+             for enemy in self.enemies:
+                 dist = archer.pos.distance_to(enemy.pos)
+                 if dist < 300: # Range
+                     target = enemy
+                     break
+
+             # If no enemy, check portals
+             if not target:
+                 for portal in self.portals:
+                     dist = archer.pos.distance_to(portal.rect.center)
+                     if dist < 300:
+                         target = portal
+                         break
+
+             if target:
+                 # Shoot cooldown
+                 if not hasattr(archer, 'cooldown'): archer.cooldown = 0
+
+                 archer.cooldown -= 1
+                 if archer.cooldown <= 0:
+                     Projectile(archer.rect.center, target, [self.all_sprites, self.projectiles], self.ground_y)
+                     archer.cooldown = 60 # 1 second fire rate
+
+    def check_projectile_collisions(self):
+        # Projectiles vs Enemies
+        hits = pygame.sprite.groupcollide(self.enemies, self.projectiles, True, True)
+        # One hit kill for now for greed
+
+        # Projectiles vs Portals
+        hits = pygame.sprite.groupcollide(self.portals, self.projectiles, False, True)
+        for portal, projectiles in hits.items():
+            for p in projectiles:
+                portal.take_damage()
 
     def draw_ui(self):
         # Debug font or simple rendering
