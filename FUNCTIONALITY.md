@@ -1,73 +1,88 @@
-# Kingdom: Classic Clone - Functionality List
+# Kingdom Clone - Functionality Roadmap
 
-## 1. Core Engine
-- [x] **Game Loop**: Standard Pygame loop (Events, Update, Draw).
-- [x] **Settings**: Screen resolution (retro aspect ratio), frame rate (60 FPS), colors (palette).
-- [x] **Camera**: Horizontal scrolling following the player.
-- [x] **Input**: Keyboard support (Arrow keys/WASD for movement, Down/S to drop coin/interact, Shift to run).
+## 1. Core Engine & Visuals
+- [ ] **Game Loop**: Main loop handling events, update, draw.
+- [ ] **State Manager**: Handle transitions (Menu -> Game -> Cave -> Win/Loss).
+- [ ] **Asset Generator**: Procedural pixel-art generation (drawing rects to surfaces) to mimic the aesthetic without external files.
+- [ ] **Camera**: Smooth scrolling centered on player, clamped to world bounds.
+- [ ] **Input Handling**: WASD/Arrows, Shift to Run, Down/S to Interact/Drop Coin.
 
-## 2. World & Environment
-- [x] **Level Generation**: Flat terrain with boundaries.
-- [x] **Parallax Background**: Multiple layers (Sky, Far trees, Near trees) moving at different speeds.
-- [x] **Ground**: Water reflection effect (simple mirroring/color shift).
-- [x] **Day/Night Cycle**: Visual change (Sky color), Logic change (Peaceful vs Danger).
+## 2. World Generation
+- [ ] **Biomes**:
+    - **Plains**: Spawns Rabbits.
+    - **Forest**: Spawns Deer, Treasure Chests.
+- [ ] **Terrain**: Flat ground with parallax backgrounds (Sky, Mountains, Trees, Near Trees).
+- [ ] **Day/Night Cycle**: Visual darkening, Moon phases (Blood Moon logic).
+- [ ] **Interactables**: Spots for Buildings, Portals, Chests.
 
-## 3. Player (Monarch)
-- [x] **Movement**: Horse riding physics (acceleration, friction).
-- [x] **States**: Idle, Walk, Gallop (stamina limited).
-- [x] **Inventory**: Coin pouch (visual representation of fullness).
-- [x] **Actions**: Drop coin (triggers physics).
-- [x] **Crown**: Visual on head. If hit by Greed, crown drops. If Greed takes crown, Game Over.
+## 3. Player & Mounts
+- [ ] **Player Controller**: Movement, Interaction.
+- [ ] **Inventory**:
+    - **Coin Pouch**: Visual overflow.
+    - **Gem Pouch**: For unlocking mounts.
+- [ ] **Mount System**:
+    - **Default Horse**: Balanced stats.
+    - **Stag**: Fast in forest, slow elsewhere.
+    - **Warhorse**: High stamina, fast gallop, boosts nearby units (optional buff).
+    - **Bear**: Attacks Greed? (Maybe too complex, stick to stats first).
+- [ ] **Health/Loss**:
+    - Hit 1: Drop Coin (if available).
+    - Hit 2 (No coins): Drop Crown.
+    - Crown Stolen: Game Over.
 
-## 4. Economy
-- [x] **Coin Entity**: Physics-based entity (gravity, bounce).
-- [x] **Sources**: Chests (one-time), Archers hunting (rabbits/deer), Farms.
-- [x] **Sinks**: Recruiting, Building, Upgrading, Paying Greed (to save life).
+## 4. Economy & Items
+- [ ] **Coin Physics**: Coins bounce, roll, and settle.
+- [ ] **Gems**: Rare currency found in forest chests.
+- [ ] **Income**:
+    - Archers hunting (Rabbits/Deer).
+    - Farmers farming.
+    - Interest from Banker (optional).
 
-## 5. Units (NPCs)
-- [x] **Vagrants**: Spawn in camps. Wander. Recruit with 1 coin -> Peasant.
-- [x] **Peasants**: Seek tools to become specialized units.
-- [x] **Archers**:
-    - Buy Bow (2 coins).
-    - Day: Hunt wildlife for coins.
-    - Night: Retreat to walls, shoot at Greed.
-- [x] **Builders**:
-    - Buy Hammer (3 coins).
-    - Build/Upgrade structures.
-    - Operate catapults (optional/advanced).
-- [ ] **Knights** (Win Condition Requirement):
-    - Upgraded from Castle. Lead attack on Portals. (Simplified: Archers attack portals).
+## 5. Units & Jobs
+- [ ] **Recruitment**: Vagrants (in camps) -> Peasants (1 coin).
+- [ ] **Job System**: Peasants pick up tools to change class.
+- [ ] **Archers**:
+    - Weapon: Bow.
+    - Day: Hunt.
+    - Night: Defend behind walls.
+- [ ] **Builders**:
+    - Weapon: Hammer.
+    - Tasks: Build/Upgrade Walls, Chop Trees, Push Boat, Push Bomb.
+- [ ] **Farmers**:
+    - Weapon: Scythe.
+    - Task: Farm crops at Farm buildings (Day only).
 
 ## 6. Buildings
-- [x] **Town Center (Campfire)**:
-    - Tier 0: Campfire (Recruitment center).
-    - Upgrades: Tent -> Wooden Fort -> Stone Castle.
-    - Spawns Banker/Merchant (optional).
-- [x] **Walls**:
-    - Build on mound slots. Block Enemies. Health pool.
-- [x] **Towers**:
-    - Build on rock slots. Safe spot for Archers.
-- [x] **Farms**:
-    - Build on stream slots. Peasant farmers generate gold.
-- [x] **Tool Shops**:
-    - Archery Range (Spawns Bows).
-    - Workshop (Spawns Hammers).
+- [ ] **Campfire (Base)**:
+    - Tier 1-N: Unlocks Banker, Knights, Bomb Shop.
+- [ ] **Walls**: Wood -> Stone -> Iron. Blocks Greed.
+- [ ] **Towers**: Wood -> Stone. protect Archers.
+- [ ] **Farms**: Generates coins.
+- [ ] **Boat Construction**:
+    - Phase 1: Wreckage.
+    - Phase 2: Adding parts (2 coins per plank).
+    - Phase 3: Completed -> Push to Water.
+    - Phase 4: Board & Leave (Victory A).
+- [ ] **Bomb Shop**:
+    - Unlocks at high-tier Campfire.
+    - Buy Bomb -> Builders push to Cliff Portal.
 
 ## 7. Enemies (The Greed)
-- [x] **Spawning**: Spawn from Portals at night. Wave size increases over days.
-- [x] **Greedling**: Basic enemy. Runs at player/units.
-    - Action: Hit unit -> unit drops tool/coin.
-    - Action: Pick up coin/tool -> Run back to portal.
-    - Action: Attack Walls.
-- [x] **Portals**:
-    - Located at far ends of map.
-    - Spawn enemies.
-    - Vulnerable to attack (Win Condition).
+- [ ] **Greedling**: Basic unit. Steals coins/tools.
+- [ ] **Masked Greed**: Armored, takes more hits.
+- [ ] **Floater**: Flying, steals units (top of tower).
+- [ ] **Spawning**:
+    - Small Portal (Lighthouse side).
+    - Big Portal (Cliff side).
+    - Waves increase nightly.
 
-## 8. Game Logic
-- [x] **Win Condition**: Destroy all Portals (or at least one side to "escape" in New Lands, but Classic is usually destroy portals/survive). Let's aim for Destroy Portals.
-- [x] **Lose Condition**: Crown is stolen by Greed and enters a Portal.
+## 8. The Cave (Cliff Portal)
+- [ ] **Entry**: Escort Bomb to portal -> Pay to enter.
+- [ ] **Interior**: Separate scene.
+- [ ] **Gameplay**: Defend Bomb until it reaches the Heart.
+- [ ] **Detonation**: Pay to ignite -> Run to exit -> Explosion -> Victory B.
 
-## 9. Visuals (Pixel Art Style)
-- [x] **Procedural Assets**: Use `pygame.Surface` and `draw.rect` to create blocky, low-res sprites.
-- [x] **Animations**: Simple frame-based animation or bobbing effects.
+## 9. UI & Feedback
+- [ ] **Coin Count**: Visual or numeric.
+- [ ] **Day Counter**: Roman numerals?
+- [ ] **Win Screen**: Statistics (Days survived, Greed killed).

@@ -1,88 +1,120 @@
 import pygame
 from settings import *
+from assets import get_assets
+from economy import Coin
 
 class Building(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, ground_y, building_type="mound"):
+    def __init__(self, pos, groups, world, building_type="mound"):
         super().__init__(groups)
-        self.building_type = building_type
-        self.ground_y = ground_y
-        self.pos = pygame.math.Vector2(pos)
-
+        self.assets = get_assets()
+        self.building_type = building_type # mound, wall, tower, farm, campfire
+        self.world = world
         self.level = 0
-        self.image = pygame.Surface((40, 40))
-        self.image.fill((100, 100, 100)) # Placeholder
+        self.pos = pygame.math.Vector2(pos)
+        self.layer = L_BUILDING_BG
 
-        self.update_graphics()
-
-        self.rect = self.image.get_rect(midbottom=(pos[0], ground_y))
+        # Visuals
+        self.image = pygame.Surface((40, 10))
+        self.image.fill((100, 100, 100)) # Mound
+        self.rect = self.image.get_rect(bottomleft=pos)
 
         # Interaction
         self.cost = 1
-        self.coins_stored = 0
+        self.coins_paid = 0
+        self.hp = 100
+
+        self.update_graphics()
 
     def update_graphics(self):
-        self.image.fill((0,0,0,0)) # Clear
-        if self.building_type == "mound": # For Walls
-            if self.level == 0:
-                pygame.draw.circle(self.image, (100, 80, 50), (20, 40), 10) # Dirt mound
-                self.cost = 1
-            elif self.level == 1:
-                pygame.draw.rect(self.image, (139, 69, 19), (10, 20, 20, 20)) # Wood wall
-                self.cost = 3
+        if self.building_type == "mound":
+            self.image = pygame.Surface((40, 20))
+            self.image.fill((80, 80, 80))
+            self.cost = 1
+        elif self.building_type == "wall":
+            self.image = self.assets[f'wall_{min(self.level, 2)}']
+            self.cost = 3
+            self.hp = 50 * self.level
+        elif self.building_type == "campfire":
+            self.image = self.assets['campfire']
+            self.cost = 5 # Upgrade cost
 
-        elif self.building_type == "rock": # For Towers
-            if self.level == 0:
-                pygame.draw.polygon(self.image, (100, 100, 100), [(10, 40), (20, 25), (30, 40)])
-                self.cost = 2
+        self.rect = self.image.get_rect(midbottom=self.rect.midbottom)
 
-        elif self.building_type == "center": # Town Center
-             if self.level == 0:
-                 # Campfire
-                 pygame.draw.circle(self.image, (50, 50, 50), (20, 38), 10)
-                 pygame.draw.circle(self.image, (255, 100, 0), (20, 35), 5)
-                 self.cost = 3
-             elif self.level == 1:
-                 # Tent
-                 pygame.draw.polygon(self.image, (200, 200, 200), [(5, 40), (20, 10), (35, 40)])
-                 self.cost = 5
+    def take_damage(self, amount):
+        if self.building_type == "wall":
+            self.hp -= amount
+            if self.hp <= 0:
+                print("WALL DESTROYED")
+                self.building_type = "mound" # Revert to mound
+                self.level = 0
+                self.update_graphics()
 
     def add_coin(self):
-        if self.level < 5: # Max level cap
-            self.coins_stored += 1
-            if self.coins_stored >= self.cost:
-                self.upgrade()
+        self.coins_paid += 1
+        print(f"Building {self.building_type} paid {self.coins_paid}/{self.cost}")
+        if self.coins_paid >= self.cost:
+            self.upgrade()
+            self.coins_paid = 0
 
     def upgrade(self):
-        self.level += 1
-        self.coins_stored = 0
+        if self.building_type == "mound":
+            self.building_type = "wall"
+            self.level = 1
+        elif self.building_type == "wall":
+            self.level += 1
+        elif self.building_type == "campfire":
+            self.level += 1
+            # Unlocks features
+
         self.update_graphics()
-        # Resize rect if image changed size (though we kept it 40x40 for now)
-        self.rect = self.image.get_rect(midbottom=(self.pos.x, self.ground_y))
 
 class Shop(Building):
-    def __init__(self, pos, groups, ground_y, tool_type):
-        self.tool_type = tool_type # "bow" or "hammer"
-        super().__init__(pos, groups, ground_y, building_type="shop")
-        # super calls update_graphics, which needs self.tool_type set first
+    def __init__(self, pos, groups, world, tool_type="bow"):
+        super().__init__(pos, groups, world, "shop")
+        self.tool_type = tool_type # bow, hammer, scythe
+        self.image = pygame.Surface((60, 60))
+        color = GREEN if tool_type == "bow" else (BROWN if tool_type == "hammer" else YELLOW)
+        self.image.fill(color)
+        self.rect = self.image.get_rect(bottomleft=pos)
+        self.cost = 2 if tool_type == "bow" else 3
 
-    def update_graphics(self):
-        self.image.fill((0,0,0,0))
-        # Shop stand
-        pygame.draw.rect(self.image, (150, 100, 50), (5, 20, 30, 20))
-        # Icon
-        color = (255, 255, 0) if self.tool_type == "bow" else (150, 150, 150)
-        pygame.draw.circle(self.image, color, (20, 10), 5)
-        self.cost = 2 if self.tool_type == "bow" else 3
+        # Shop logic
+        self.tools_in_stock = 0
 
     def add_coin(self):
-        self.coins_stored += 1
-        if self.coins_stored >= self.cost:
-            self.produce_tool()
-            self.coins_stored = 0
+        self.coins_paid += 1
+        if self.coins_paid >= self.cost:
+            self.spawn_tool()
+            self.coins_paid = 0
 
-    def produce_tool(self):
-        # Spawn a tool item (not implemented yet, just print for now)
-        print(f"Produced {self.tool_type}")
-        # Need to signal level to spawn tool
-        if hasattr(self, 'spawn_tool_callback'):
-            self.spawn_tool_callback(self.rect.center, self.tool_type)
+    def spawn_tool(self):
+        # Spawn tool entity
+        Tool(self.rect.center, [self.world.all_sprites, self.world.items], self.world, self.tool_type)
+
+class Tool(pygame.sprite.Sprite):
+    def __init__(self, pos, groups, world, tool_type):
+        super().__init__(groups)
+        self.tool_type = tool_type
+        self.image = pygame.Surface((20, 20))
+        if tool_type == "bow": self.image.fill(GREEN)
+        elif tool_type == "hammer": self.image.fill(BROWN)
+        elif tool_type == "scythe": self.image.fill(YELLOW)
+
+        self.rect = self.image.get_rect(center=pos)
+        self.pos = pygame.math.Vector2(pos)
+        self.velocity = pygame.math.Vector2(0, -4)
+        self.world = world
+        self.layer = L_ITEMS
+        self.ground_y = world.ground_y
+
+    def update(self):
+        # Physics similar to coin
+        self.velocity.y += GRAVITY
+        self.pos += self.velocity
+
+        if self.pos.y >= self.ground_y - 10:
+            self.pos.y = self.ground_y - 10
+            self.velocity.y = 0
+            self.velocity.x = 0
+
+        self.rect.center = self.pos

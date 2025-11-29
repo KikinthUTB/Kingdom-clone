@@ -17,7 +17,6 @@ class Projectile(pygame.sprite.Sprite):
         self.ground_y = ground_y
 
     def calculate_velocity(self, target):
-        # Simple arc or direct shot? Let's do simple direct shot for now with gravity affecting it
         dx = target.rect.centerx - self.pos.x
         dy = target.rect.centery - self.pos.y
         angle = math.atan2(dy, dx)
@@ -33,5 +32,5 @@ class Projectile(pygame.sprite.Sprite):
             self.kill()
 
         # Check off screen
-        if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH + 4000: # Rough bounds
+        if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH + 4000:
             self.kill()
