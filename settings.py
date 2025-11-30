@@ -1,31 +1,49 @@
-import pygame
 
-# --- Nastavení a Konstanty ---
-WIDTH, HEIGHT = 1280, 720
-WORLD_WIDTH = WIDTH * 3
+# Screen
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+FPS = 60
+TILE_SIZE = 64
 
-# Barvy
+# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GREEN = (0, 128, 0)
+RED = (200, 50, 50)
+GREEN = (50, 200, 50)
+BLUE = (50, 50, 200)
+YELLOW = (255, 215, 0)
+PURPLE = (150, 0, 150)
 BROWN = (139, 69, 19)
-SKY_BLUE = (135, 206, 235)
-GRAY = (128, 128, 128)
-YELLOW = (255, 255, 0)
-ORANGE = (255, 165, 0)  # Stavař
-LIGHT_GREEN = (144, 238, 144)  # Lučištník
-LIGHT_BROWN = (210, 180, 140) # Farmář
-PURPLE = (128, 0, 128) # Portál
-DARK_BLUE = (0, 0, 50) # Noc
-GREED_COLOR = (220, 20, 60) # Greed
-CROWN_GOLD = (255, 215, 0) # Koruna
+SKY_BLUE = (100, 200, 255)
+NIGHT_BLUE = (10, 10, 30)
 
-# Herní čas
-DAY_LENGTH = 60000  # 60 sekund
-NIGHT_LENGTH = 30000 # 30 sekund
-# Kratší pro testování
-# DAY_LENGTH = 20000
-# NIGHT_LENGTH = 15000
+# Layers (Z-Index)
+LAYER_BG_FAR = 0
+LAYER_BG_MID = 1
+LAYER_BG_NEAR = 2
+LAYER_GROUND = 3
+LAYER_MOUNT_BG = 4 # Behind player
+LAYER_PLAYER = 5
+LAYER_MOUNT_FG = 6 # In front of player (legs?)
+LAYER_UNITS = 7
+LAYER_ITEMS = 8 # Coins, Tools
+LAYER_BUILDINGS = 9 # Walls need to be behind or in front? Usually behind units. Let's adjust.
+# Adjusted Layers
+L_BG = 0
+L_GROUND = 1
+L_BUILDING_BG = 2 # Behind units
+L_UNITS = 3
+L_PLAYER = 4
+L_ITEMS = 5
+L_FG = 6
+L_UI = 10
 
-# Eventy
-SPAWN_BEGGAR_EVENT = pygame.USEREVENT + 1
+# Physics
+GRAVITY = 0.8
+FRICTION = -0.12
+PLAYER_SPEED = 5
+PLAYER_RUN_SPEED = 9
+
+# Game Rules
+DAY_LENGTH = 3600 # 60 seconds * 60 fps
+NIGHT_START_THRESHOLD = 0.6 # 60% of day is light
